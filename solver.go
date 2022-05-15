@@ -79,6 +79,27 @@ func (t Transform4) apply(input string) []string {
 	}
 }
 
+// Toy transform - allows us to replaces 4 Is with a single U, so we can get to a correct answer
+type Transform5 string
+
+func (t Transform5) apply(input string) []string {
+	transforms := make([]string, 0)
+
+	pattern := "IIII"
+
+	// Look for the pattern at each starting character, to cover the case of overlapping matches.
+	searchStart := 0
+	for {
+		substrMatchStart := strings.Index(input[searchStart:], pattern)
+		if substrMatchStart == -1 {
+			return transforms
+		}
+		matchStart := substrMatchStart + searchStart
+		transforms = append(transforms, input[:matchStart]+"U"+input[matchStart+len(pattern):])
+		searchStart = matchStart + 1
+	}
+}
+
 func contains(s []string, str string) bool {
 	for _, v := range s {
 		if v == str {
@@ -94,8 +115,9 @@ func main() {
 	var t2 Transform2 = "2" // "Mx -> Mxx"
 	var t3 Transform3 = "3" // "*III* -> *U*"
 	var t4 Transform4 = "4" // "*UU* -> **"
+	var t5 Transform5 = "5" // "*IIII* -> *U*"
 
-	ts := []Transform{t1, t2, t3, t4}
+	ts := []Transform{t1, t2, t3, t4, t5}
 	bag := map[string]string{"MI": ""}
 
 	queue := make([]string, 0)
@@ -124,7 +146,7 @@ func main() {
 			for _, result := range results {
 				// Only add results to the queue that haven't already been obtained in previous steps.
 				if _, ok := bag[result]; !ok {
-					bag[result] = bag["str"] + fmt.Sprintf("%v", tIndex+1) + "->"
+					bag[result] = bag[str] + fmt.Sprintf("%v", tIndex+1) + "->"
 					queue = append(queue, result)
 				}
 			}
