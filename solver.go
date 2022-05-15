@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// Transform is an interface for
+// Transform is an interface for any sort of string transformation.
 type Transform interface {
 	// Returns a list of all possible strings that result from applying this transformation.
 	// string must be made up of only M, I, or U
