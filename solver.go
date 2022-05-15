@@ -1,7 +1,8 @@
 package main
 
 import (
-	"regexp"
+	"fmt"
+	"strings"
 )
 
 // Transform is an interface for
@@ -37,16 +38,19 @@ type Transform3 string
 func (t Transform3) apply(input string) []string {
 	transforms := make([]string, 0)
 
-	regexp, _ := regexp.Compile(`.*III.*`)
-	match_indices := regexp.FindAllStringIndex(input, -1)
+	pattern := "III"
 
-	for _, index_pair := range match_indices {
-		start := index_pair[0]
-		end := index_pair[1]
-		transforms = append(transforms, input[:start]+"U"+input[end:])
+	// Look for the pattern at each starting character, to cover the case of overlapping matches.
+	searchStart := 0
+	for {
+		substrMatchStart := strings.Index(input[searchStart:], pattern)
+		if substrMatchStart == -1 {
+			return transforms
+		}
+		matchStart := substrMatchStart + searchStart
+		transforms = append(transforms, input[:matchStart]+"U"+input[matchStart+len(pattern):])
+		searchStart = matchStart + 1
 	}
-
-	return transforms
 }
 
 // Any "UU" in the input can be replaced with ""
@@ -55,14 +59,75 @@ type Transform4 string
 func (t Transform4) apply(input string) []string {
 	transforms := make([]string, 0)
 
-	regexp, _ := regexp.Compile(`.*UU.*`)
-	match_indices := regexp.FindAllStringIndex(input, -1)
+	pattern := "UU"
 
-	for _, index_pair := range match_indices {
-		start := index_pair[0]
-		end := index_pair[1]
-		transforms = append(transforms, input[:start]+input[end:])
+	// Look for the pattern at each starting character, to cover the case of overlapping matches.
+	searchStart := 0
+	for {
+		substrMatchStart := strings.Index(input[searchStart:], pattern)
+		if substrMatchStart == -1 {
+			return transforms
+		}
+		matchStart := substrMatchStart + searchStart
+
+		resultStr := input[:matchStart] + input[matchStart+len(pattern):]
+		if !contains(transforms, resultStr) {
+			transforms = append(transforms, resultStr)
+		}
+
+		searchStart = matchStart + 1
+	}
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
 	}
 
-	return transforms
+	return false
+}
+
+func main() {
+	var t1 Transform1 = "1" // "End in I, add U"
+	var t2 Transform2 = "2" // "Mx -> Mxx"
+	var t3 Transform3 = "3" // "*III* -> *U*"
+	var t4 Transform4 = "4" // "*UU* -> **"
+
+	ts := []Transform{t1, t2, t3, t4}
+	bag := map[string]string{"MI": ""}
+
+	queue := make([]string, 0)
+	queue = append(queue, "MI")
+
+	stopCount := 10000
+	iterCount := 0
+	for {
+		iterCount += 1
+
+		if path, ok := bag["MU"]; ok {
+			fmt.Printf("Soln: %v\n", path)
+			break
+		}
+		if iterCount >= stopCount {
+			fmt.Printf("No success in %v...\n", stopCount)
+			break
+		}
+		// Pop from the queue
+		str := queue[0]
+		queue = queue[1:]
+
+		// Apply all transformation to the popped string
+		for tIndex, t := range ts {
+			results := t.apply(str)
+			for _, result := range results {
+				// Only add results to the queue that haven't already been obtained in previous steps.
+				if _, ok := bag[result]; !ok {
+					bag[result] = bag["str"] + fmt.Sprintf("%v", tIndex+1) + "->"
+					queue = append(queue, result)
+				}
+			}
+		}
+	}
 }
